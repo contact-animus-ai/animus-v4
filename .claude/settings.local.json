@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp add --scope project --transport http supabase \"https://mcp.supabase.com/mcp?project_ref=uytlmncaubevlmnovpyo&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching%2Cstorage\")",
+      "Bash(claude mcp list --scope project)",
+      "Bash(claude mcp add --transport http supabase https://mcp.supabase.com/mcp)",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Supabase__list_tables",
+      "Bash(npx next build 2>&1 | tail -30)",
+      "Bash(which gh && gh auth status 2>&1)",
+      "Bash(which git && git config --global user.name 2>/dev/null && git config --global user.email 2>/dev/null)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
