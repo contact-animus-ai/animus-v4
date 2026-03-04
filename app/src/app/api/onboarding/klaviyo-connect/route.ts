@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { errorResponse, successResponse, AppError } from "@/lib/errors";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const bodySchema = z.object({
   apiKey: z.string().min(1, "API key is required"),
 });

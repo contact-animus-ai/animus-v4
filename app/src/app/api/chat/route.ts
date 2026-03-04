@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { errorResponse, successResponse } from "@/lib/errors";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const bodySchema = z.object({
   message: z.string().min(1).max(10000),
   conversationId: z.string().uuid(),

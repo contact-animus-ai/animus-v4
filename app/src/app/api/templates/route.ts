@@ -2,6 +2,8 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { errorResponse, successResponse } from "@/lib/errors";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const supabase = await createServerSupabaseClient();

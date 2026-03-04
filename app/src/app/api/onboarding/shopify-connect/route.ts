@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { errorResponse, successResponse } from "@/lib/errors";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const bodySchema = z.object({
   shop: z.string().regex(/^[a-zA-Z0-9-]+\.myshopify\.com$/, "Must be a valid myshopify.com URL"),
 });
