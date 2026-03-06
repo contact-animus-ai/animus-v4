@@ -1,0 +1,83 @@
+{
+  "name": "[Onboarding] Brand Ingestion",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "onboarding",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Onboarding Receiver",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.kombai.com/v1/analyze-design-system",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "url", "value": "={{ $json.website_url }}" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Kombai API Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KOMBAI_API",
+          "name": "Kombai API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "tableId": "brand_configs",
+        "columns": "merchant_id,design_system,updated_at",
+        "options": {
+          "conflictColumns": "merchant_id"
+        }
+      },
+      "name": "Upsert Brand Config",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [780, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_API",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true, \"message\": \"Brand config saved successfully.\" }"
+      },
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1020, 300]
+    }
+  ],
+  "connections": {
+    "Onboarding Receiver": {
+      "main": [[{ "node": "Kombai API Request", "type": "main", "index": 0 }]]
+    },
+    "Kombai API Request": {
+      "main": [[{ "node": "Upsert Brand Config", "type": "main", "index": 0 }]]
+    },
+    "Upsert Brand Config": {
+      "main": [[{ "node": "Respond Success", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

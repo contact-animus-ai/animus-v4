@@ -1,0 +1,205 @@
+{
+  "name": "[Router] Main Animus Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "animus-chat",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Animus Chat Receiver",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json[\"message\"].toLowerCase() }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "audit",
+              "operation": "contains",
+              "output": 0
+            },
+            {
+              "value2": "email",
+              "operation": "contains",
+              "output": 1
+            }
+          ]
+        },
+        "fallbackOutput": 2
+      },
+      "name": "Route Message",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.manus.ai/tasks",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "merchantId", "value": "={{ $json[\"merchantId\"] }}" },
+            { "name": "message", "value": "={{ $json[\"message\"] }}" },
+            { "name": "conversationId", "value": "={{ $json[\"conversationId\"] }}" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Manus AI Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [740, 160],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MANUS_API",
+          "name": "Manus API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"role\":\"assistant\",\"content\":\"Audit task started. I'll notify you when it's complete.\",\"type\":\"audit_started\"}"
+      },
+      "name": "Respond Audit Started",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [980, 160]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "brand_configs",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "merchant_id",
+              "condition": "equal",
+              "keyValue": "={{ $json[\"merchantId\"] }}"
+            }
+          ]
+        }
+      },
+      "name": "Fetch Brand Config",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [740, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_API",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $credentials.httpHeaderAuth.value }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 4096,\n  \"system\": \"You are Animus, an AI email marketing operator. Generate structured email content based on the brand context provided. Return JSON with fields: subject, preheader, html_content, text_content.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Brand context: \" + JSON.stringify($node[\"Fetch Brand Config\"].json) + \"\\n\\nRequest: \" + $json[\"message\"] + \"\\n\\nConversation history: \" + JSON.stringify($json[\"conversationHistory\"] || [])\n    }\n  ]\n}",
+        "options": {}
+      },
+      "name": "Claude Email Generation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [980, 400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CLAUDE_API",
+          "name": "Claude API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"role\":\"assistant\",\"content\":{{ $json[\"content\"][0][\"text\"] }},\"type\":\"email_draft\"}"
+      },
+      "name": "Respond Email JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1210, 400]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $credentials.httpHeaderAuth.value }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 2048,\n  \"system\": \"You are Animus, an AI marketing assistant for e-commerce brands. Help merchants with email marketing strategy, campaign planning, and general marketing questions. Be concise and actionable.\",\n  \"messages\": ($json[\"conversationHistory\"] || []).concat([{\"role\":\"user\",\"content\":$json[\"message\"]}])\n}",
+        "options": {}
+      },
+      "name": "Claude General Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [740, 580],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CLAUDE_API",
+          "name": "Claude API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"role\":\"assistant\",\"content\":{{ $json[\"content\"][0][\"text\"] }},\"type\":\"text\"}"
+      },
+      "name": "Respond General",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [980, 580]
+    }
+  ],
+  "connections": {
+    "Animus Chat Receiver": {
+      "main": [[{ "node": "Route Message", "type": "main", "index": 0 }]]
+    },
+    "Route Message": {
+      "main": [
+        [{ "node": "Manus AI Request", "type": "main", "index": 0 }],
+        [{ "node": "Fetch Brand Config", "type": "main", "index": 0 }],
+        [{ "node": "Claude General Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Manus AI Request": {
+      "main": [[{ "node": "Respond Audit Started", "type": "main", "index": 0 }]]
+    },
+    "Fetch Brand Config": {
+      "main": [[{ "node": "Claude Email Generation", "type": "main", "index": 0 }]]
+    },
+    "Claude Email Generation": {
+      "main": [[{ "node": "Respond Email JSON", "type": "main", "index": 0 }]]
+    },
+    "Claude General Response": {
+      "main": [[{ "node": "Respond General", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

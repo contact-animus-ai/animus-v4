@@ -1,25 +1,39 @@
-import Link from "next/link";
+"use client";
+
+import Navbar from "@/components/landing/Navbar";
+import HeroSection from "@/components/landing/HeroSection";
+import SocialProofBar from "@/components/landing/SocialProofBar";
+import ProblemSection from "@/components/landing/ProblemSection";
+import SolutionSection from "@/components/landing/SolutionSection";
+import ThreePillarsSection from "@/components/landing/ThreePillarsSection";
+import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
+import FeaturesSection from "@/components/landing/FeaturesSection";
+import CompetitiveSection from "@/components/landing/CompetitiveSection";
+import PricingPreview from "@/components/landing/PricingPreview";
+import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import FAQSection from "@/components/landing/FAQSection";
+import CTASection from "@/components/landing/CTASection";
+import Footer from "@/components/landing/Footer";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center px-4">
-      <div className="max-w-2xl text-center">
-        <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight">
-          Your AI Marketing Operator.
-        </h1>
-        <p className="mt-6 text-lg md:text-xl text-gray-400 leading-relaxed">
-          Animus audits your Klaviyo, identifies revenue opportunities, creates
-          segments, and generates on-brand emails — automatically.
-        </p>
-        <div className="mt-10">
-          <Link
-            href="/signup"
-            className="inline-block bg-white text-black font-semibold px-8 py-4 rounded-lg text-lg hover:bg-gray-200 transition-colors"
-          >
-            Get Early Access
-          </Link>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <HeroSection />
+      <SocialProofBar />
+      <ProblemSection />
+      <SolutionSection />
+      <ThreePillarsSection />
+      <HowItWorksSection />
+      <BeforeAfterSection />
+      <FeaturesSection />
+      <CompetitiveSection />
+      <PricingPreview />
+      <TestimonialsSection />
+      <FAQSection />
+      <CTASection />
+      <Footer />
     </div>
   );
 }

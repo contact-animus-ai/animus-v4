@@ -1,0 +1,110 @@
+{
+  "name": "[Handler] Manus Completion",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "manus-task-stopped",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Manus Task Stopped Receiver",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.stop_reason }}",
+              "rightValue": "finish",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "name": "IF Stop Reason Finish",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "merchants",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "equal",
+              "keyValue": "={{ $json.merchant_id }}"
+            }
+          ]
+        }
+      },
+      "name": "Find Merchant",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [740, 250],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_API",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.APP_URL }}/api/n8n/webhook",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"audit_complete\",\n  \"merchantId\": \"{{ $json.merchant_id }}\",\n  \"conversationId\": \"{{ $json.conversation_id }}\",\n  \"data\": {\n    \"content\": {{ JSON.stringify($json.message || 'Audit complete.') }},\n    \"messageType\": \"audit_result\",\n    \"metadata\": { \"auditId\": \"{{ $json.audit_id }}\" }\n  }\n}",
+        "options": {}
+      },
+      "name": "Callback to App",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [980, 250]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }"
+      },
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1220, 250]
+    }
+  ],
+  "connections": {
+    "Manus Task Stopped Receiver": {
+      "main": [[{ "node": "IF Stop Reason Finish", "type": "main", "index": 0 }]]
+    },
+    "IF Stop Reason Finish": {
+      "main": [
+        [{ "node": "Find Merchant", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200 OK", "type": "main", "index": 0 }]
+      ]
+    },
+    "Find Merchant": {
+      "main": [[{ "node": "Callback to App", "type": "main", "index": 0 }]]
+    },
+    "Callback to App": {
+      "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

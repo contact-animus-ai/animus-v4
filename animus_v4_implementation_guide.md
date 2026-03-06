@@ -36,7 +36,7 @@ Animus is not a chatbot. The chat interface is how the merchant communicates, bu
 ### Skills
 
 | Skill | Agent | Trigger | Input | Output |
-|-------|-------|---------|-------|--------|
+| ------- | ------- | --------- | ------- | -------- |
 | `extract_brand` | Claude Vision | Onboarding | Store URL | Brand config (colors, fonts, logo) |
 | `sync_shopify` | Shopify API | Onboarding / on-demand | Access token | Products, customers, orders in Supabase |
 | `audit_klaviyo` | Manus AI | User request or post-onboarding | Klaviyo + Shopify data | 14-point analysis, revenue opportunities |
@@ -51,7 +51,7 @@ Animus is not a chatbot. The chat interface is how the merchant communicates, bu
 
 The `merchant_state` field on the `merchants` table tracks progression:
 
-```
+```text
 onboarding_shopify        → Merchant needs to connect Shopify
 onboarding_klaviyo        → Merchant needs to connect Klaviyo
 onboarding_brand          → Merchant needs to configure brand
@@ -69,7 +69,7 @@ The state machine is a guide, not a jail. A merchant in `active` state can trigg
 ## The Stack
 
 | Layer | Service | Purpose |
-|-------|---------|---------|
+| ------- | --------- | --------- |
 | **Frontend** | Next.js 14 (App Router) on Vercel | UI, API routes, serverless functions |
 | **Database & Auth** | Supabase | Multi-tenant DB, auth, realtime |
 | **Backend Orchestration** | n8n (Cloud or self-hosted) | All workflow automation — the brain |
@@ -236,7 +236,7 @@ Run the migration SQL above against project `uytlmncaubevlmnovpyo`. This adds th
 
 Go to lovable.dev and create a new project "Animus V4". Use this prompt:
 
-```
+```text
 Build a Next.js 14 app named "Animus" using the App Router, TypeScript, and Tailwind CSS.
 
 Authentication & Database:
@@ -296,7 +296,8 @@ npm install
 ```
 
 Create `.env.local`:
-```
+
+```text
 NEXT_PUBLIC_SUPABASE_URL=https://uytlmncaubevlmnovpyo.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
@@ -332,7 +333,8 @@ These files are created by Claude Code in the codebase:
 ### Action 2.2: Build Auth Callback
 
 Claude Code prompt:
-```
+
+```text
 Create /app/auth/callback/route.ts that:
 1. Exchanges the code for a Supabase session
 2. Queries the merchants table for the authenticated user
@@ -346,7 +348,8 @@ Update middleware.ts to allow /auth/callback through.
 ### Action 2.3: Build Password Reset
 
 Claude Code prompt:
-```
+
+```text
 Create /app/forgot-password/page.tsx and /app/reset-password/page.tsx.
 - Forgot password: email input, calls supabase.auth.resetPasswordForEmail()
 - Reset password: new password + confirm, calls supabase.auth.updateUser()
@@ -371,7 +374,7 @@ Add a link from the login page to /forgot-password.
 
 ### Action 3.2: Add Environment Variables
 
-```
+```text
 SHOPIFY_CLIENT_ID=your_client_id
 SHOPIFY_CLIENT_SECRET=your_client_secret
 SHOPIFY_SCOPES=read_products,read_customers,read_orders
@@ -380,7 +383,8 @@ SHOPIFY_SCOPES=read_products,read_customers,read_orders
 ### Action 3.3: Build Shopify OAuth + Sync
 
 Claude Code prompt:
-```
+
+```text
 Build the Shopify integration with these API routes:
 
 1. /api/shopify/connect — Initiates OAuth. Accepts { shop } parameter. Generates a random state parameter, stores it in an HTTP-only cookie. Constructs the Shopify OAuth URL with client_id, scopes (read_products,read_customers,read_orders), redirect_uri, and state. Returns the redirect URL.
@@ -398,7 +402,7 @@ Use zod to validate all inputs. Use the admin Supabase client for DB writes.
 
 This n8n workflow handles the full data sync asynchronously (avoids Vercel timeout):
 
-```
+```text
 Trigger: Webhook (POST /webhook/sync-shopify)
 Input: { merchantId, shopifyStoreUrl, shopifyAccessToken }
 
@@ -432,7 +436,8 @@ Add `N8N_SYNC_SHOPIFY_URL` to Vercel env vars.
 ### Action 4.1: Build Klaviyo Connection Route
 
 Claude Code prompt:
-```
+
+```text
 Create /api/onboarding/klaviyo-connect that:
 1. Validates the Klaviyo API key by calling GET https://a.klaviyo.com/api/accounts/ with header "Authorization: Klaviyo-API-Key {key}" and "revision: 2024-10-15"
 2. If valid, encrypt the key using lib/crypto.ts and save to merchants.klaviyo_api_key
@@ -445,7 +450,8 @@ Use zod to validate the API key format. Return clear error if the key is invalid
 ### Action 4.2: Build Brand Configuration Route
 
 Claude Code prompt:
-```
+
+```text
 Create /api/onboarding/brand-config that:
 1. Accepts { primaryColor, secondaryColor, fontHeading, fontBody, logoUrl }
 2. Validates with zod (colors must be valid hex, fonts are non-empty strings, logoUrl is a valid URL)
@@ -460,7 +466,8 @@ Create /api/onboarding/brand-config that:
 For merchants who don't want to fill in the form manually, offer a "Auto-detect from my store" button:
 
 Claude Code prompt:
-```
+
+```text
 Create /api/onboarding/extract-brand that:
 1. Accepts { storeUrl }
 2. Takes a screenshot of the store using a headless browser service or the Shopify store's meta tags
@@ -486,7 +493,7 @@ When a merchant completes onboarding (Action 4.2), create a dedicated Manus proj
 
 **n8n Workflow: `[Skill] Create Manus Project`**
 
-```
+```text
 Trigger: Webhook (POST /webhook/create-manus-project)
 Input: { merchantId, storeName, brandConfig }
 
@@ -507,7 +514,7 @@ Step 3: Respond with { success: true, projectId }
 
 This is injected into every Manus project:
 
-```
+```text
 You are Animus, an elite AI email marketing strategist for Shopify merchants. You have access to the merchant's Shopify data (products, customers, orders) and Klaviyo data (profiles, segments, flows, campaigns, metrics).
 
 Your core capabilities:
@@ -543,7 +550,7 @@ Output format: Structured JSON (not Google Docs) so the dashboard can render it 
 
 **n8n Workflow: `[Skill] Audit Klaviyo - Phase 1`**
 
-```
+```text
 Trigger: Webhook (POST /webhook/audit-phase1)
 Input: { merchantId, conversationId }
 
@@ -595,7 +602,7 @@ Step 11: Respond to webhook with success
 
 **n8n Workflow: `[Handler] Manus Completion`**
 
-```
+```text
 Trigger: Webhook (POST /webhook/manus-completion)
 Input: Manus webhook payload { task_id, stop_reason, result }
 
@@ -625,7 +632,7 @@ Step 5: Respond 200 OK
 
 **n8n Workflow: `[Skill] Audit Klaviyo - Phase 2`**
 
-```
+```text
 Trigger: Webhook (POST /webhook/audit-phase2)
 Input: { merchantId, conversationId, parentAuditId, confirmedOpportunities }
 
@@ -667,7 +674,7 @@ The Manus Completion Handler (Action 5.3) handles the result for both Phase 1 an
 
 **n8n Workflow: `[Skill] Create Klaviyo Segments`**
 
-```
+```text
 Trigger: Webhook (POST /webhook/create-segments)
 Input: { merchantId, auditId, segments: [{ name, definition }] }
 
@@ -714,7 +721,7 @@ Step 7: Respond with { success: true, segments_created: N }
 
 This is the main entry point. It replaces the broken V3 router with an LLM-based intent classifier.
 
-```
+```text
 Trigger: Webhook (POST /webhook/animus-chat)
 Input: { merchantId, conversationId, message, merchantState }
 Response Mode: Last Node (waits for processing before responding)
@@ -773,7 +780,8 @@ Step 6: Respond to webhook with:
 ### Action 7.2: Build the Frontend Chat API Route
 
 Claude Code prompt:
-```
+
+```text
 Update /api/chat to:
 
 1. Get authenticated user from Supabase session
@@ -800,7 +808,8 @@ Use the admin Supabase client for all DB operations. Validate inputs with zod.
 ### Action 7.3: Auto-Generate Conversation Titles
 
 Claude Code prompt:
-```
+
+```text
 After the first assistant response in a new conversation, make a background call to Claude:
 
 POST https://api.anthropic.com/v1/messages
@@ -823,7 +832,7 @@ Update the conversation title in Supabase. Use a non-blocking approach (fire and
 
 **n8n Workflow: `[Skill] Generate Email`**
 
-```
+```text
 Trigger: Webhook (POST /webhook/generate-email)
 Input: { merchantId, conversationId, message }
 
@@ -861,7 +870,8 @@ Step 8: Respond with { type: "email_components", components: [...], templateId: 
 ### Action 8.2: Build the Structured Email Editor
 
 Claude Code prompt:
-```
+
+```text
 Build the structured email editor at /editor/[templateId]. Use the react-email-wysiwyg-editor architecture as reference (https://github.com/amiller68/react-email-wysiwyg-editor).
 
 Three-panel layout:
@@ -910,7 +920,7 @@ Load initial components from the template record via /api/templates/[id].
 
 **n8n Workflow: `[Skill] Refine Email`**
 
-```
+```text
 Trigger: Webhook (POST /webhook/refine-email)
 Input: { merchantId, templateId, currentComponents, instruction }
 
@@ -934,7 +944,8 @@ Step 4: Respond with { updatedComponents: [...] }
 ### Action 8.4: Build the Klaviyo Push
 
 Claude Code prompt:
-```
+
+```text
 Create /api/push-to-klaviyo that:
 
 1. Accepts { templateId }
@@ -982,7 +993,8 @@ Use ReactDOMServer.renderToStaticMarkup for the HTML conversion, then run it thr
 ### Action 9.2: Define Thesys Component Types
 
 Claude Code prompt:
-```
+
+```text
 Create Thesys component definitions for rendering in the chat interface. Install @thesys/react.
 
 Component: AuditReportCard
@@ -1025,7 +1037,8 @@ Wire these into the chat message renderer: check message_type and metadata to de
 1. Stripe dashboard → Products → Create "Animus Pro" at $99/month
 2. Copy the Price ID
 3. Add env vars:
-```
+
+```text
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRO_PRICE_ID=price_...
@@ -1035,7 +1048,8 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ### Action 10.2: Build Billing Routes
 
 Claude Code prompt:
-```
+
+```text
 Build the Stripe billing integration:
 
 1. /api/billing/create-checkout — Creates Stripe Checkout session for Pro plan. Associates with authenticated user's email. Returns checkout URL. On success redirect to /onboarding.
@@ -1063,7 +1077,8 @@ Install stripe and @stripe/stripe-js.
 ### Action 11.1: Security
 
 Claude Code prompt:
-```
+
+```text
 Add security hardening across the app:
 
 1. lib/crypto.ts: AES-256-GCM encryption using ENCRYPTION_KEY env var. Functions: encrypt(plaintext) → ciphertext, decrypt(ciphertext) → plaintext. Used for shopify_access_token and klaviyo_api_key.
@@ -1081,7 +1096,8 @@ Add security hardening across the app:
 ### Action 11.2: Error Handling
 
 Claude Code prompt:
-```
+
+```text
 Add error handling infrastructure:
 
 1. Install sonner for toast notifications. Add <Toaster /> to root layout.
@@ -1138,7 +1154,7 @@ Use a completely new email address:
 ## Environment Variables Reference
 
 | Variable | Source | Purpose |
-|----------|--------|---------|
+| ---------- | -------- | --------- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Settings → API | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API | Public anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API | Admin key (server-only) |
@@ -1169,7 +1185,7 @@ Use a completely new email address:
 ## n8n Workflow Summary
 
 | # | Workflow | Webhook Path | Purpose |
-|---|----------|-------------|---------|
+| --- | ---------- | ------------- | --------- |
 | 1 | `[Router] Animus Chat Engine` | /webhook/animus-chat | Intent classification + routing |
 | 2 | `[Skill] Sync Shopify Data` | /webhook/sync-shopify | Product/customer/order sync |
 | 3 | `[Skill] Create Manus Project` | /webhook/create-manus-project | Manus workspace setup |
@@ -1199,6 +1215,7 @@ Kombai is used during development (in Antigravity IDE) to build the master email
 - **HeroBlock** — full-width hero section with background image (future)
 
 These components are:
+
 1. Built once using Kombai's design-to-code capabilities
 2. Stored in the codebase as React components (`components/email/`)
 3. Rendered in the editor preview using React

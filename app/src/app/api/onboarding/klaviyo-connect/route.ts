@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { errorResponse, successResponse, AppError } from "@/lib/errors";
+import { encrypt } from "@/lib/crypto";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -30,11 +31,11 @@ export async function POST(request: Request) {
       throw new AppError("Invalid Klaviyo API key. Please check and try again.", "INVALID_API_KEY", 400);
     }
 
-    // Save the key and advance state
+    // Encrypt and save the key, advance state
     const { error } = await supabaseAdmin
       .from("merchants")
       .update({
-        klaviyo_api_key: apiKey,
+        klaviyo_api_key: encrypt(apiKey),
         merchant_state: "onboarding_brand",
       })
       .eq("auth_user_id", user.id);

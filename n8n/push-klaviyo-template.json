@@ -1,0 +1,60 @@
+{
+  "name": "[Klaviyo] Push Template",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "push-klaviyo",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Klaviyo Push Receiver",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://a.klaviyo.com/api/templates/",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Klaviyo-API-Key {{ $json.klaviyo_api_key }}" },
+            { "name": "revision", "value": "2024-10-15" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"data\": {\n    \"type\": \"template\",\n    \"attributes\": {\n      \"name\": \"{{ $json.template_name }}\",\n      \"editor_type\": \"CODE\",\n      \"html\": {{ JSON.stringify($json.html_content) }}\n    }\n  }\n}",
+        "options": {}
+      },
+      "name": "Create Klaviyo Template",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, klaviyo_template_id: $json.data.id }) }}"
+      },
+      "name": "Respond Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [780, 300]
+    }
+  ],
+  "connections": {
+    "Klaviyo Push Receiver": {
+      "main": [[{ "node": "Create Klaviyo Template", "type": "main", "index": 0 }]]
+    },
+    "Create Klaviyo Template": {
+      "main": [[{ "node": "Respond Result", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

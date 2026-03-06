@@ -1,0 +1,94 @@
+{
+  "name": "[Email] Claude Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-generate",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Email Gen Receiver",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "brand_configs",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "merchant_id",
+              "condition": "equal",
+              "keyValue": "={{ $json.merchant_id }}"
+            }
+          ]
+        }
+      },
+      "name": "Fetch Brand Config",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [520, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_API",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $credentials.httpHeaderAuth.value }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 4096,\n  \"system\": \"You are an expert email marketing copywriter. Generate a complete email template based on the brand context and email type requested. Return a JSON object with fields: subject, preheader, sections (array of {type, heading, body, cta_text, cta_url}), and suggested_send_time.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Brand: \" + JSON.stringify($node['Fetch Brand Config'].json || {}) + \"\\n\\nEmail type: \" + ($json.email_type || 'welcome') + \"\\nAdditional context: \" + ($json.prompt || '') + \"\\nTemplate variables: \" + JSON.stringify($json.variables || {})\n    }\n  ]\n}",
+        "options": {}
+      },
+      "name": "Claude Generate Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [780, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CLAUDE_API",
+          "name": "Claude API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, email: JSON.parse($json.content[0].text) }) }}"
+      },
+      "name": "Respond Email",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1040, 300]
+    }
+  ],
+  "connections": {
+    "Email Gen Receiver": {
+      "main": [[{ "node": "Fetch Brand Config", "type": "main", "index": 0 }]]
+    },
+    "Fetch Brand Config": {
+      "main": [[{ "node": "Claude Generate Email", "type": "main", "index": 0 }]]
+    },
+    "Claude Generate Email": {
+      "main": [[{ "node": "Respond Email", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {}
+}
